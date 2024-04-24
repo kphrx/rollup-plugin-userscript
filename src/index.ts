@@ -5,7 +5,7 @@ import { collectGmApi, getMetadata } from './util';
 
 const suffix = '?userscript-metadata';
 
-export default (transform?: (metadata: string) => string): Plugin => {
+export default (transform?: (metadata: string) => string, requireSet?: Set<string>): Plugin => {
   const metadataMap = new Map();
   const grantMap = new Map();
   return {
@@ -39,6 +39,7 @@ export default (transform?: (metadata: string) => string): Plugin => {
       if (!metadataFile) return;
       let metadata = await readFile(metadataFile, 'utf8');
       const grantSet = new Set<string>();
+      const additionalRequireList = new Set(requireSet ?? []);
       for (const id of this.getModuleIds()) {
         const grantSetPerFile = grantMap.get(id);
         if (grantSetPerFile) {
@@ -47,7 +48,7 @@ export default (transform?: (metadata: string) => string): Plugin => {
           }
         }
       }
-      metadata = getMetadata(metadata, grantSet);
+      metadata = getMetadata(metadata, grantSet, additionalRequireList);
       if (transform) metadata = transform(metadata);
       const s = new MagicString(code);
       s.prepend(`${metadata}\n\n`);

@@ -44,7 +44,7 @@ export function collectGmApi(ast: AstNode) {
   return grantSetPerFile;
 }
 
-export function getMetadata(metaFileContent: string, additionalGrantList: Set<string>) {
+export function getMetadata(metaFileContent: string, additionalGrantList: Set<string>, additionalRequireList: Set<string>) {
   const lines = metaFileContent.split('\n').map(line => line.trim());
   const start = lines.indexOf(META_START);
   const end = lines.indexOf(META_END);
@@ -52,6 +52,7 @@ export function getMetadata(metaFileContent: string, additionalGrantList: Set<st
     throw new Error('Invalid metadata block. For more details see https://violentmonkey.github.io/api/metadata-block/');
   }
   const grantSet = new Set<string>();
+  const requireSet = new Set<string>();
   const entries = lines.slice(start + 1, end)
     .map(line => {
       if (!line.startsWith('// ')) return;
@@ -64,6 +65,10 @@ export function getMetadata(metaFileContent: string, additionalGrantList: Set<st
         grantSet.add(value);
         return;
       }
+      if (key === '@require') {
+        requireSet.add(value);
+        return;
+      }
       return [key, value];
     })
     .filter(Boolean);
@@ -74,6 +79,14 @@ export function getMetadata(metaFileContent: string, additionalGrantList: Set<st
   grantList.sort();
   for (const item of grantList) {
     entries.push(['@grant', item]);
+  }
+  for (const item of additionalRequireList) {
+    requireSet.add(item);
+  }
+  const requireList = Array.from(requireSet);
+  requireList.sort();
+  for (const item of requireList) {
+    entries.push(['@require', item]);
   }
   const maxKeyWidth = Math.max(...entries.map(([key]) => key.length));
   return [
